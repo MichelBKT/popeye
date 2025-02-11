@@ -1,108 +1,86 @@
+# Projet Docker avec PostgreSQL, Redis et Worker
 
-# Projet Docker avec PostgreSQL, Redis et un Worker Java
+Ce projet utilise Docker et Docker Compose pour orchestrer une application composée de plusieurs services :
+- **PostgreSQL** : Base de données principale
+- **Redis** : Cache et file d'attente
+- **Worker** : Service de traitement en Java
+- **Poll** : Service basé sur Flask
+- **Result** : Service basé sur Node.js
 
-Ce projet utilise Docker pour orchestrer plusieurs services :
-
-- PostgreSQL comme base de données
-
-- Redis comme système de mise en cache
-
-- Un worker en Java pour traiter certaines tâches en arrière-plan
-
-- Un service d'application pour interagir avec la base de données et Redis
-
-
-
-## Pré-requis
-
-Docker desktop installé sur votre machine
-
+## Prérequis
+- Docker et Docker Compose installés
+- Un fichier `.env` contenant les variables d'environnement pour PostgreSQL et les autres services
 
 ## Installation
-
-Installation et exécution
-
-Clonez ce dépôt sur votre machine locale
-
-```bash
-  git clone
+Clonez ce dépôt et accédez au dossier du projet :
+```sh
+  git clone <repository_url>
+  cd <project_directory>
 ```
-Assurez-vous d'avoir un fichier .env à la racine du projet contenant :
-```bash
-    POSTGRES_USER=user
-    POSTGRES_PASSWORD=password
-    POSTGRES_DB=mydatabase
+
+## Configuration
+Créez un fichier `.env` à la racine du projet avec :
+```sh
+    POSTGRES_USER=your_username
+    POSTGRES_PASSWORD=your_password
+    POSTGRES_DB=your_database
+    DB_PORT=5432
     REDIS_HOST=redis
     REDIS_PORT=6379
-                  *********** les valeurs sont à modifier*****************
-```
-Construisez et démarrez les conteneurs :
-```bash
-  docker-compose up --build
 ```
 
+## Lancer les services
+Démarrez les conteneurs avec :
+```sh
+  docker-compose up --build -d
+```
+Cela construira et démarrera tous les services avec les réseaux `poll-tier`, `result-tier` et `back-tier` définis dans `docker-compose.yml`.
 
+## Vérifier les logs
+Vous pouvez consulter les logs des services en temps réel :
+```sh
+  docker-compose logs -f
+```
 
-## Déploiement Docker
+## Accéder aux services
+- **PostgreSQL** : `localhost:5432`
+- **Redis** : `localhost:6379`
+- **Poll (Flask)** : `http://localhost:5000`
+- **Result (Node.js)** : `http://localhost:5001`
 
-#### PostgreSQL
+## Vérifier les variables d'environnement dans un conteneur
+Par exemple, pour `worker` :
+```sh
+  docker exec -it worker env | grep DB_
+```
+Vous devez voir :
+```
+DB_HOST=db
+DB_PORT=5432
+DB_USER=your_username
+DB_PASSWORD=your_password
+DB_NAME=your_database
+```
+Si `DB_PORT` est `null`, vérifiez votre `.env` et `docker-compose.yml`.
 
-Le service PostgreSQL est configuré dans docker-compose.yml sous le nom db.
-
-Il expose le port 5432.
-
-La base de données est initialisée avec un script SQL présent à la racine du projet /docker-entrypoint-initdb.d/.
-
-#### Redis
-
-Le service Redis est configuré sous le nom redis.
-
-Il est accessible sur le port 6379.
-
-#### Worker Java
-
-Le Worker Java est développé en tant que service worker et compile un fichier .java en .jar avant de l'exécuter.
-
-Compilation :
-
-javac -d out Worker.java
-jar cfe Worker.jar worker.Worker -C out .
-
-Exécution :
-
-java -jar worker-jar-with-dependencies.jar
-
-
-
-
-## Support
-
-#### Erreur relation "votes" does not exist
-
-Assurez-vous que la table votes est bien créée :
-
-        CREATE TABLE votes (
-            id SERIAL PRIMARY KEY,
-            user_id INT NOT NULL,
-            post_id INT NOT NULL,
-            vote_type VARCHAR(10),
-            created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-        );
-
-Importez le fichier SQL si besoin.
-
-#### Erreur getaddrinfo ENOTFOUND postgres
-
-Assurez-vous que votre service PostgreSQL est bien nommé db dans docker-compose.yml et non postgres.
-
-#### Arrêt et suppression des conteneurs + données
-```bash
+## Arrêter et nettoyer les conteneurs
+Pour stopper les services :
+```sh
+  docker-compose down
+```
+Pour supprimer les volumes de données :
+```sh
   docker-compose down -v
 ```
+
+## Dépannage
+- **Erreur `relation \"votes\" does not exist`** : Vérifiez que la migration SQL a bien été appliquée.
+- **`ENOTFOUND postgres`** : Vérifiez que le service `db` est bien défini dans `docker-compose.yml`.
+- **Le worker affiche `JDBC URL invalid port number: null` ?** Assurez-vous que `DB_PORT=5432` est bien défini dans `docker-compose.yml` et `.env`.
+- **Vérifiez avec `System.getenv("DB_PORT")` dans le code Java pour voir s'il est bien récupéré.**
 
 
 ## Author
 
 - [@MichelBKT](https://www.github.com/MichelBKT)
-
 
